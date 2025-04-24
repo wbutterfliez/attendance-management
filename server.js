@@ -59,8 +59,6 @@ app.get('/dashboard', (req, res) => {
 });
 
 
-
-
 // Route to handle attendance marking
 app.post('/mark_attendance', (req, res) => {
   const updates = [];
@@ -111,6 +109,23 @@ app.post('/mark_attendance', (req, res) => {
   });
 });
   
+
+// Route to view attendance
+app.get('/view_attendance', (req, res) => {
+  const { roll_no } = req.query;
+  const query = `
+    SELECT s.s_name, a.total_days, a.present_days
+    FROM student s
+    JOIN attendance a ON s.s_id = a.s_id
+    WHERE s.s_id = ?
+  `;
+  db.query(query, [roll_no], (err, results) => {
+    if (err) return res.status(500).send('Query failed.');
+    if (results.length === 0) return res.send('No record found.');
+    res.json(results[0]);
+  });
+});
+
   
 // Route to send notification to one student
 app.post('/send_notification', (req, res) => {
