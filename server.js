@@ -128,42 +128,44 @@ app.get('/view_attendance', (req, res) => {
 
   
 // Route to send notification to one student
+// Route to send notification to one student
 app.post('/send_notification', (req, res) => {
-    console.log("Request Body:", req.body); // Log the entire body to check form data
-    
-    const { s_id, message } = req.body;
-    
-    const getPidQuery = `SELECT p_id FROM student WHERE s_id = ?`;
-    
-    db.query(getPidQuery, [s_id], (err, result) => {
-      if (err) {
-        console.error("Database error while fetching parent ID:", err);
-        return res.status(500).send("Unable to send notification (DB error).");
+  console.log("Request Body:", req.body); // Log the entire body to check form data
+
+  const { s_id, message } = req.body;
+
+  if (!s_id || !message) {
+    return res.status(400).send("Missing student ID or message.");
+  }
+
+  const getPidQuery = "SELECT p_id FROM student WHERE s_id = ?";
+
+  db.query(getPidQuery, [s_id], (err, result) => {
+    if (err) {
+      console.error("Database error while fetching parent ID:", err);
+      return res.status(500).send("Unable to send notification (DB error).");
+    }
+
+    console.log("Parent ID Query Result:", result);
+
+    if (!result || result.length === 0) {
+      console.error("No student found with that s_id:", s_id);
+      return res.status(404).send("Unable to send notification (Student not found).");
+    }
+
+    const p_id = result[0].p_id;
+
+    const insertQuery = 
+      "INSERT INTO notification (s_id, msg, p_id) VALUES (?, ?, ?)";
+
+    db.query(insertQuery, [s_id, message, p_id], (err2, result2) => {
+      if (err2) {
+        console.error("Failed to insert notification:", err2);
+        return res.status(500).send("Notification failed to save.");
       }
-    
-      console.log("Parent ID Query Result:", result);  // Log the result of the query
-      
-      if (!result || result.length === 0) {
-        console.error("No student found with that s_id:", s_id);
-        return res.status(404).send("Unable to send notification (Student not found).");
-      }
-    
-      const p_id = result[0].p_id;
-    
-      const insertQuery = `
-        INSERT INTO notification (s_id, msg, p_id)
-        VALUES (?, ?, ?)
-      `;
-    
-      db.query(insertQuery, [s_id, message, p_id], (err2, result2) => {
-        if (err2) {
-          console.error("Failed to insert notification:", err2);
-          return res.status(500).send("Notification failed to save.");
-        }
-    
-        res.send("Notification sent successfully!");
-      }
-    );
+
+      res.send("Notification sent successfully!");
+    });
   });
 });
 
