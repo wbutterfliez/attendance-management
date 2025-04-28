@@ -16,62 +16,68 @@
 
    <!-- Student List -->
 <div class="card">
-    <div class="card-header bg-primary text-white">Student List</div>
-    <div class="card-body">
-      <form action="/mark_attendance" method="POST">
-        <table class="table table-bordered table-striped">
-          <thead>
-            <tr>
-              <th>Roll No</th>
-              <th>Name</th>
-              <th>Branch</th>
-              <th>Present</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>2205</td>
-              <td>Varun</td>
-              <td>ECE</td>
-              <td><input type="checkbox" name="present_2205" /></td>
-            </tr>
-            <tr>
-              <td>2301</td>
-              <td>Aryann</td>
-              <td>CSE</td>
-              <td><input type="checkbox" name="present_2301" /></td>
-            </tr>
-            <tr>
-              <td>2302</td>
-              <td>Kajal</td>
-              <td>AI</td>
-              <td><input type="checkbox" name="present_2302" /></td>
-            </tr>
-            <tr>
-              <td>2309</td>
-              <td>Samiksha</td>
-              <td>CSE</td>
-              <td><input type="checkbox" name="present_2309" /></td>
-            </tr>
-            <tr>
-              <td>2311</td>
-              <td>Radha</td>
-              <td>ECE</td>
-              <td><input type="checkbox" name="present_2311" /></td>
-            </tr>
-            <tr>
-              <td>2411</td>
-              <td>Radha</td>
-              <td>AI</td>
-              <td><input type="checkbox" name="present_2411" /></td>
-            </tr>
-          </tbody>
-        </table>
-        <button type="submit" class="btn btn-success">Submit Attendance</button>
-      </form>
-    </div>
+  <div class="card-header bg-primary text-white">Student List</div>
+  <div class="card-body">
+    <form id="attendanceForm" action="/mark_attendance" method="POST">
+      <table class="table table-bordered table-striped">
+        <thead>
+          <tr>
+            <th>Roll No</th>
+            <th>Name</th>
+            <th>Branch</th>
+            <th>Present</th>
+            <th>Absent</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>2205</td>
+            <td>Varun</td>
+            <td>ECE</td>
+            <td><input type="checkbox" name="present_2205" class="present" data-roll="2205" /></td>
+            <td><input type="checkbox" name="absent_2205" class="absent" data-roll="2205" /></td>
+          </tr>
+          <tr>
+            <td>2301</td>
+            <td>Aryann</td>
+            <td>CSE</td>
+            <td><input type="checkbox" name="present_2301" class="present" data-roll="2301" /></td>
+            <td><input type="checkbox" name="absent_2301" class="absent" data-roll="2301" /></td>
+          </tr>
+          <tr>
+            <td>2302</td>
+            <td>Kajal</td>
+            <td>AI</td>
+            <td><input type="checkbox" name="present_2302" class="present" data-roll="2302" /></td>
+            <td><input type="checkbox" name="absent_2302" class="absent" data-roll="2302" /></td>
+          </tr>
+          <tr>
+            <td>2309</td>
+            <td>Samiksha</td>
+            <td>CSE</td>
+            <td><input type="checkbox" name="present_2309" class="present" data-roll="2309" /></td>
+            <td><input type="checkbox" name="absent_2309" class="absent" data-roll="2309" /></td>
+          </tr>
+          <tr>
+            <td>2311</td>
+            <td>Radha</td>
+            <td>ECE</td>
+            <td><input type="checkbox" name="present_2311" class="present" data-roll="2311" /></td>
+            <td><input type="checkbox" name="absent_2311" class="absent" data-roll="2311" /></td>
+          </tr>
+          <tr>
+            <td>2411</td>
+            <td>Radha</td>
+            <td>AI</td>
+            <td><input type="checkbox" name="present_2411" class="present" data-roll="2411" /></td>
+            <td><input type="checkbox" name="absent_2411" class="absent" data-roll="2411" /></td>
+          </tr>
+        </tbody>
+      </table>
+      <button type="submit" class="btn btn-success">Submit Attendance</button>
+    </form>
   </div>
-  
+</div>
 
     <!-- View Attendance -->
     <div class="card">
@@ -176,7 +182,7 @@
                 <td>2411</td>
                 <td>Radha</td>
                 <td>ECE</td>
-                <td>71.32%</td>
+                <td>94.89%</td>
                 <td>
                   <form action="/send_notification" method="POST">
                     <input type="hidden" name="s_id" value="2411" />
@@ -194,12 +200,55 @@
         </div>
     </div>
     
+     <!-- Message -->
+     <div class="card">
+      <div class="card-header bg-secondary text-white">Message</div>
+      <div class="card-body">
+        <form action="/message" method="POST">
+          <div class="row">
+            <div class="col-md-6">
+              <label>Student Roll No:</label>
+              <input type="text" name="roll_no" class="form-control" placeholder="Enter Roll Number" required>
+            </div>
+            <div class="col-md-6">
+              <label>Message:</label>
+              <textarea name="message" class="form-control" placeholder="Type your message here..." rows="4" required></textarea>
+            </div>
+            <div class="col-md-12 mt-4">
+              <button type="submit" class="btn btn-info w-100">Send Message</button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
     
+    
+  </div>
 
   
 
   
   </div>
-
+  <script>
+    document.getElementById('attendanceForm').addEventListener('submit', function(event) {
+      const students = {};
+  
+      document.querySelectorAll('.present, .absent').forEach(checkbox => {
+        const roll = checkbox.getAttribute('data-roll');
+        if (!students[roll]) students[roll] = { present: false, absent: false };
+        if (checkbox.classList.contains('present') && checkbox.checked) students[roll].present = true;
+        if (checkbox.classList.contains('absent') && checkbox.checked) students[roll].absent = true;
+      });
+  
+      for (let roll in students) {
+        const status = students[roll];
+        if ((status.present && status.absent) || (!status.present && !status.absent)) {
+          event.preventDefault();
+          alert(`Error: Please select either Present or Absent for Roll No ${roll}, not both or none!`);
+          return; // Stop form submission
+        }
+      }
+    });
+  </script>
 </body>
 </html>

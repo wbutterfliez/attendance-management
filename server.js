@@ -130,7 +130,7 @@ app.get('/view_attendance', (req, res) => {
 // Route to send notification to one student
 // Route to send notification to one student
 app.post('/send_notification', (req, res) => {
-  console.log("Request Body:", req.body); // Log the entire body to check form data
+  console.log("Request Body:", req.body);
 
   const { s_id, message } = req.body;
 
@@ -138,37 +138,102 @@ app.post('/send_notification', (req, res) => {
     return res.status(400).send("Missing student ID or message.");
   }
 
-  const getPidQuery = "SELECT p_id FROM student WHERE s_id = ?";
+  // Step 1: Get student's attendance
+  const attendanceQuery = `
+    SELECT total_days, present_days 
+    FROM attendance 
+    WHERE s_id = ?
+  `;
 
-  db.query(getPidQuery, [s_id], (err, result) => {
+  db.query(attendanceQuery, [s_id], (err, attendanceResult) => {
     if (err) {
-      console.error("Database error while fetching parent ID:", err);
-      return res.status(500).send("Unable to send notification (DB error).");
+      console.error("Database error while fetching attendance:", err);
+      return res.status(500).send("Unable to send notification (DB error on attendance).");
     }
 
-    console.log("Parent ID Query Result:", result);
-
-    if (!result || result.length === 0) {
-      console.error("No student found with that s_id:", s_id);
-      return res.status(404).send("Unable to send notification (Student not found).");
+    if (!attendanceResult || attendanceResult.length === 0) {
+      return res.status(404).send("Student attendance record not found.");
     }
 
-    const p_id = result[0].p_id;
+    const { total_days, present_days } = attendanceResult[0];
+    const attendancePercent = (present_days / total_days) * 100;
 
-    const insertQuery = 
-      "INSERT INTO notification (s_id, msg, p_id) VALUES (?, ?, ?)";
+    console.log(`Attendance % for student ${s_id}: ${attendancePercent.toFixed(2)}%`);
 
-    db.query(insertQuery, [s_id, message, p_id], (err2, result2) => {
+    // Step 2: Check if attendance is above 80%
+    if (attendancePercent > 80) {
+      return res.status(400).send("Cannot send notification: Student's attendance is above 80%.");
+    }
+
+    // Step 3: If attendance is low, send notification
+    const getPidQuery = "SELECT p_id FROM student WHERE s_id = ?";
+
+    db.query(getPidQuery, [s_id], (err2, result) => {
       if (err2) {
-        console.error("Failed to insert notification:", err2);
-        return res.status(500).send("Notification failed to save.");
+        console.error("Database error while fetching parent ID:", err2);
+        return res.status(500).send("Unable to send notification (DB error on parent ID).");
       }
 
-      res.send("Notification sent successfully!");
+      if (!result || result.length === 0) {
+        console.error("No student found with that s_id:", s_id);
+        return res.status(404).send("Unable to send notification (Student not found).");
+      }
+
+      const p_id = result[0].p_id;
+
+      const insertQuery = "INSERT INTO notification (s_id, msg, p_id) VALUES (?, ?, ?)";
+
+      db.query(insertQuery, [s_id, message, p_id], (err3, result2) => {
+        if (err3) {
+          console.error("Failed to insert notification:", err3);
+          return res.status(500).send("Notification failed to save.");
+        }
+
+        res.send("Notification sent successfully!");
+      });
     });
   });
 });
 
+
+
+
+app.post('/message', (req, res) => {
+  const { roll_no } = req.body;
+
+  if (!roll_no) {
+    return res.status(400).send('Roll number is required.');
+  }
+
+  // First, get s_id and p_id
+  const findStudentQuery = "SELECT s_id, p_id FROM student WHERE s_id = ?";
+
+  db.query(findStudentQuery, [roll_no], (err, result) => {
+    if (err) {
+      console.error("Database error while finding student:", err);
+      return res.status(500).send("Database error.");
+    }
+
+    if (result.length === 0) {
+      return res.status(404).send("Student not found.");
+    }
+
+    const { s_id, p_id } = result[0];
+
+    // Insert default message into notification
+    const defaultMessage = "Reminder: Please check your attendance and stay regular!";
+    const insertNotificationQuery = "INSERT INTO notification (s_id, msg, p_id) VALUES (?, ?, ?)";
+
+    db.query(insertNotificationQuery, [s_id, defaultMessage, p_id], (err2, result2) => {
+      if (err2) {
+        console.error("Database error while inserting notification:", err2);
+        return res.status(500).send("Failed to insert notification.");
+      }
+
+      res.send("Notification successfully sent!");
+    });
+  });
+});
 
 
 
